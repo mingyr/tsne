@@ -2,8 +2,6 @@ import sys, os
 import numpy as np
 import tensorflow as tf
 import sonnet as snt
-import matplotlib.pyplot as plt
-from scipy import io
 
 class TSNE(snt.AbstractModule):
     def __init__(self, num_samples, dims=2, name="t_sne"):

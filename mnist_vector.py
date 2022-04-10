@@ -50,7 +50,8 @@ if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
 
 input_ = Input(num_samples, [image_height, image_width, 1], 1)
-images, _ = input_("D:\\Data\\MNIST\\mnist-test.tfr")
+images, labels = input_("/home/yrming/Data/MNIST/mnist-test.tfr")
+labels = tf.squeeze(labels)
     
 # 由输入得到模型的输出
 def sim(P):
@@ -63,18 +64,31 @@ latents = tsne(images, sim)
 # saver = tf.train.Saver()
 writer = tf.summary.FileWriter(LOG_DIR, tf.get_default_graph())   
 
-def draw_image(sess, v, color):
+def draw_image(sess, v, l):
     @tfmpl.figure_tensor
-    def scatter(v, color): 
-        '''Draw scatter plots. One for each color.'''  
-        fig = tfmpl.create_figures(1, figsize=(8,8))[0]
-        ax = fig.add_subplot(111)
-        ax.scatter(v[:, 0], v[:, 1], c=color)
+    def scatter(v, l): 
+        '''Draw scatter plots. One for each color.'''
+        fig = tfmpl.create_figure(figsize=(8, 6))
+        ax = fig.subplots()
+        markers = ['o', 'x', '+', 'v', '^', '<', '>', 's', 'd', '.', ',']
+        lb_cat = set(l)
+        num_cat = len(lb_cat)
+        markers = markers[:num_cat]
+        for i in range(num_cat):
+            lb = lb_cat.pop()
+            lb_mask = l == lb
+            marker = markers[i]
+            data = v[lb_mask]
+            x, y = zip(*data)
+            ax.plot(x, y, marker, label="{0}".format(lb))
+
+        ax.legend(numpoints=1) 
         fig.tight_layout()
 
         return fig
 
-    image_tensor = scatter(v, color)
+    
+    image_tensor = scatter(v, l)
     image_summary = tf.summary.image('t-SNE', image_tensor)
     if not sess:
         sess = tf.get_default_session()
@@ -87,9 +101,9 @@ with tf.Session() as sess:
     sess.run([tf.global_variables_initializer(), 
               tf.local_variables_initializer()])
 
-    v = sess.run(latents)
+    v, l = sess.run([latents, labels])
     
-    images_str = draw_image(sess, v, 'r')
+    images_str = draw_image(sess, v, l)
     writer.add_summary(images_str, global_step = 0)
 
     writer.close()
